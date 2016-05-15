@@ -5,12 +5,12 @@ var getPort = require('get-port');
 var Q = require('q');
 var colors = require('colors');
 var argv = require('yargs')
-	.usage('$0 -s <suite-name> [optional arguments]')
-	.example('$0 -s login\n')
-	.example('$0 -s login -c android19 -C components/login -f components/login -p apps/app.apk')
+	.usage('$0 -S <suite-name> [optional arguments]')
+	.example('$0 -S login\n')
+	.example('$0 -S login -c android19 -C components/login -f components/login -p apps/app.apk -r json -s localhost:12345')
 	.options({
 		suite: {
-			alias: 's',
+			alias: 'S',
 			demand: true,
 			describe: 'Suite to run, lives in your patatafile',
 			group: 'Obligatory:'
@@ -49,11 +49,18 @@ var argv = require('yargs')
 			group: 'Optional arguments:'
 		},
 		servers: {
-			alias: 'srv',
+			alias: 's',
 			array: true,
 			demand: false,
 			describe: 'Hostname:port of the appium instance you wish to use',
 			group: 'Optional arguments:'			
+		},
+		reports: {
+			alias: 'r',
+			array: true,
+			demand: false,
+			describe: 'Report format you wish to expose',
+			group: 'Optional arguments:'
 		}
 	})
 	.help()
@@ -73,24 +80,18 @@ Patata.launch({}, function(result) {
 
     // Require patatafile
     require(result.configPath);
-    var patata = require(result.modulePath);
+    let patata = require(result.modulePath);
 
     const suiteName = argv.suite;
-    
-    console.log('CLI SUITE:', suiteFromCLI(argv))
 
     if (useCommandLineArgs(argv)) {
-    	console.log('should use cmd args')
-
-    	// patata.suite(suiteName, suiteFromCLI(argv))
+    	patata.suite(suiteName, buildSuite(argv));
     }
 
     // Fix default values
     fixDefaultValues(patata, suiteName).then(function(patata) {
         // Current suite
         var currentSuite = patata.getSuite(suiteName);
-
-        console.log('FILE SUITE:', currentSuite)
 
         // Start appium
         startAppium(currentSuite).then(() => {
@@ -198,7 +199,9 @@ function createCucumberArgs(patata) {
     
     // Print on screen
     printMessage(patata);
-    
+    	
+    console.log(args)
+
     return args;
 }
 
@@ -236,7 +239,7 @@ function useCommandLineArgs(cliArgs) {
 function resolveFeatures(features) {
 	if (!features) return;
 	
-	let returnableFeatures = {
+	let returnableStructure = {
 		files: [],
 		tags: [],
 		scenarios: []
@@ -245,37 +248,43 @@ function resolveFeatures(features) {
 	features.forEach(item => {
 		if (item.substring(0, 1) === '@' || item.substring(0, 1) === '~') {
 			// tags
-			returnableFeatures.tags.push(item);
+			returnableStructure.tags.push(item);
 		} else if (item.indexOf('/') !== -1) {
 			// files
-			returnableFeatures.files.push(item);
+			returnableStructure.files.push(item);
 		} else {
 			// scenarios
-			returnableFeatures.scenarios.push(item);
+			returnableStructure.scenarios.push(item);
 		}
 	});
 
-	return returnableFeatures;
+	return returnableStructure;
 }
 
 function resolveServers(servers) {
 	if (!servers) return;
-	let returnableServers = []
 
-
+	return servers.map(item => {
+		const parts = item.split(':');
+		return {
+			host: parts[0] || 'localhost',
+			port: parts[1]
+		};
+	});
 }
 
-function suiteFromCLI(cliArgs) {
+function buildSuite(rawSuite) {
 	return {
-		capability: cliArgs.capability,
-        components: cliArgs.components,
-        include: cliArgs.include,
-        features: resolveFeatures(cliArgs.features),
+		capability: rawSuite.capability,
+        components: rawSuite.components,
+        include: rawSuite.include,
+        features: resolveFeatures(rawSuite.features),
         provider: {
-            path: cliArgs.provider
+            path: rawSuite.provider
         },
         config: {}, // Should be a function call that resolves to a config object.
-        servers: resolveServers(cliArgs.servers)
+        servers: resolveServers(rawSuite.servers),
+        reports: rawSuite.reports || ['json']
 	}
 }
 
@@ -289,12 +298,12 @@ function buildWithArgs(prefix, anyArray, argName) {
     var result = [];
     
     for (var i = 0; i < anyArray.length; i++) {
-        if (argName) {
+    	if (argName) {
             result.push(argName);
         }
-        result.push(prefix + anyArray[i]);
+    	result.push(prefix + anyArray[i]);
     }
-    
+
     return result;
 }
 
