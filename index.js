@@ -199,8 +199,6 @@ function createCucumberArgs(patata) {
     
     // Print on screen
     printMessage(patata);
-    	
-    console.log(args)
 
     return args;
 }
