@@ -5,7 +5,11 @@
   "main": "index.js",
   "author": "Miguel Ángel Domínguez Coloma <m@eridem.net> (http://eridem.net)",
   "contributors": [
-    
+    {
+      "name": "Ben Bultman",
+      "email": "bultman.ben@gmail.com",
+      "url": "https://github.com/bbultman"
+    }
   ],
   "license": "MIT",
   "bin": {
