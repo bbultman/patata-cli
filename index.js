@@ -4,6 +4,60 @@ var Liftoff = require('liftoff');
 var getPort = require('get-port');
 var Q = require('q');
 var colors = require('colors');
+var argv = require('yargs')
+	.usage('$0 -s <suite-name> [optional arguments]')
+	.example('$0 -s login\n')
+	.example('$0 -s login -c android19 -C components/login -f components/login -p apps/app.apk')
+	.options({
+		suite: {
+			alias: 's',
+			demand: true,
+			describe: 'Suite to run, lives in your patatafile',
+			group: 'Obligatory:'
+		},
+		capability: {
+			alias: 'c',
+			demand: false,
+			describe: 'Platform version: "android19" or "ios81"',
+			group: 'Optional arguments:'
+		},
+		components: {
+			alias: 'C',
+			array: true,
+			demand: false,
+			describe: 'Path to definitions of elements inside the test app',
+			group: 'Optional arguments:'
+		},
+		features: {
+			alias: 'f',
+			array: true,
+			demand: false,
+			describe: 'Cucumber tags, paths to files or scenario names',
+			group: 'Optional arguments:'
+		},
+		provider: {
+			alias: 'p',
+			demand: false,
+			describe: 'Relative path to the app binary',
+			group: 'Optional arguments:'
+		},
+		include: {
+			alias: 'i',
+			array: true,
+			demand: false,
+			describe: 'Arbitrary modules you want to require',
+			group: 'Optional arguments:'
+		},
+		servers: {
+			alias: 'srv',
+			array: true,
+			demand: false,
+			describe: 'Hostname:port of the appium instance you wish to use',
+			group: 'Optional arguments:'			
+		}
+	})
+	.help()
+	.argv
 
 var appiumApp;
 
@@ -16,28 +70,32 @@ var Patata = new Liftoff({
 
 Patata.launch({}, function(result) {
     printLogo();
-    
-    var argv = require('yargs').argv;
-    if (argv._.length === 0) {
-        throw "No suites launched. Please use: patata [suite]";
-    }
-    
-    // Get suite name
-    var suiteCli = argv._[0];
-    
+
     // Require patatafile
     require(result.configPath);
     var patata = require(result.modulePath);
-       
+
+    const suiteName = argv.suite;
+    
+    console.log('CLI SUITE:', suiteFromCLI(argv))
+
+    if (useCommandLineArgs(argv)) {
+    	console.log('should use cmd args')
+
+    	// patata.suite(suiteName, suiteFromCLI(argv))
+    }
+
     // Fix default values
-    fixDefaultValues(patata, suiteCli).then(function(patata) {
+    fixDefaultValues(patata, suiteName).then(function(patata) {
         // Current suite
-        var currentSuite = patata.getSuite(suiteCli);
-        
+        var currentSuite = patata.getSuite(suiteName);
+
+        console.log('FILE SUITE:', currentSuite)
+
         // Start appium
         startAppium(currentSuite).then(() => {
             // Init suite
-            patata.init(suiteCli);
+            patata.init(suiteName);
             
             // Create cucumber args
             var cucumberArgs = createCucumberArgs(patata);
@@ -52,12 +110,12 @@ Patata.launch({}, function(result) {
 // Fix default suite values that were optional
 // on the patata configuration suite from patatafile.js
 //
-function fixDefaultValues(patata, suiteCli) {
+function fixDefaultValues(patata, suiteName) {
     var deferred = Q.defer();
     
     getPort().then(function(port) {    
         // Current suite
-        var currentSuite = patata.getSuite(suiteCli);
+        var currentSuite = patata.getSuite(suiteName);
          
         // Fix features default values
         currentSuite.features = currentSuite.features || {};
@@ -72,10 +130,10 @@ function fixDefaultValues(patata, suiteCli) {
             [{ host: 'localhost', port: port }]; 
         
         // Replace previous suite with complete values
-        patata.suite(suiteCli, currentSuite);
+        patata.suite(suiteName, currentSuite);
         
         // Return
-        deferred.resolve(patata, suiteCli);
+        deferred.resolve(patata, suiteName);
     });
     
     return deferred.promise;
@@ -162,6 +220,56 @@ function startCucumber(args) {
     cucumberCli.run(cucumberCliAction).then(function() {
         stopAppium();   
     });
+}
+
+function useCommandLineArgs(cliArgs) {
+	return (cliArgs.capability && cliArgs.components && cliArgs.features && cliArgs.provider)
+}
+
+function resolveFeatures(features) {
+	if (!features) return;
+	
+	let returnableFeatures = {
+		files: [],
+		tags: [],
+		scenarios: []
+	};
+
+	features.forEach(item => {
+		if (item.substring(0, 1) === '@' || item.substring(0, 1) === '~') {
+			// tags
+			returnableFeatures.tags.push(item);
+		} else if (item.indexOf('/') !== -1) {
+			// files
+			returnableFeatures.files.push(item);
+		} else {
+			// scenarios
+			returnableFeatures.scenarios.push(item);
+		}
+	});
+
+	return returnableFeatures;
+}
+
+function resolveServers(servers) {
+	if (!servers) return;
+	let returnableServers = []
+
+
+}
+
+function suiteFromCLI(cliArgs) {
+	return {
+		capability: cliArgs.capability,
+        components: cliArgs.components,
+        include: cliArgs.include,
+        features: resolveFeatures(cliArgs.features),
+        provider: {
+            path: cliArgs.provider
+        },
+        config: {}, // Should be a function call that resolves to a config object.
+        servers: resolveServers(cliArgs.servers)
+	}
 }
 
 //
