@@ -102,7 +102,11 @@ Patata.launch({}, function(result) {
         
             // Init cucumber with args
             startCucumber(cucumberArgs);
+        }).catch(function(error) {
+            throw new Error(error);
         });
+    }).catch(function(error) {
+        throw new Error(error);
     });
 });
 
@@ -122,6 +126,9 @@ function fixDefaultValues(patata, suiteName) {
         currentSuite.features.files = currentSuite.features.files || [];
         currentSuite.features.tags = currentSuite.features.tags || [];
         currentSuite.features.scenarios = currentSuite.features.scenarios || [];
+        
+        // Reports
+        currentSuite.reports = currentSuite.reports || [];
             
         // Fix server default values
         currentSuite.servers =    
@@ -297,16 +304,16 @@ function printMessage(patata) {
     console.log("Components:".cyan, "\t " + patata.currentSuite.components);
     console.log("Include:".cyan, "\t " + patata.currentSuite.include);
     console.log("Features:".cyan, "\t " + patata.currentSuite.features.files);
+    console.log("Reports:".cyan, "\t " + patata.reports);
     console.log("\n");
 }
 
 function printLogo() {    
-    console.log(
-        "                  __             __                __\n".yellow +
-        "______  _____   _/  |_ _____   _/  |_ _____       |__|  ____\n".yellow +
-        "\\____ \\ \\__  \\  \\   __\\\\__  \\  \\   __\\\\__  \\      |  | /  _ \\\n".yellow +
-        "|  |_> > / __ \\_ |  |   / __ \\_ |  |   / __ \\_    |  |(  <_> )\n".yellow +
-        "|   __/ (____  / |__|  (____  / |__|  (____  / /\\ |__| \\____/\n".yellow +
-        "|__|         \\/             \\/             \\/  \\/\n".yellow
+    console.log(        "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0__\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0__\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0__\n".yellow +
+        "______\u00A0\u00A0_____\u00A0\u00A0\u00A0_/\u00A0\u00A0|_\u00A0_____\u00A0\u00A0\u00A0_/\u00A0\u00A0|_\u00A0_____\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0|__|\u00A0\u00A0____\n".yellow +
+        "\\____\u00A0\\\u00A0\\__\u00A0\u00A0\\\u00A0\u00A0\\\u00A0\u00A0\u00A0__\\\\__\u00A0\u00A0\\\u00A0\u00A0\\\u00A0\u00A0\u00A0__\\\\__\u00A0\u00A0\\\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0|\u00A0\u00A0|\u00A0/\u00A0\u00A0_\u00A0\\\n".yellow +
+        "|\u00A0\u00A0|_>\u00A0>\u00A0/\u00A0__\u00A0\\_\u00A0|\u00A0\u00A0|\u00A0\u00A0\u00A0/\u00A0__\u00A0\\_\u00A0|\u00A0\u00A0|\u00A0\u00A0\u00A0/\u00A0__\u00A0\\_\u00A0\u00A0\u00A0\u00A0|\u00A0\u00A0|(\u00A0\u00A0<_>\u00A0)\n".yellow +
+        "|\u00A0\u00A0\u00A0__/\u00A0(____\u00A0\u00A0/\u00A0|__|\u00A0\u00A0(____\u00A0\u00A0/\u00A0|__|\u00A0\u00A0(____\u00A0\u00A0/\u00A0/\\\u00A0|__|\u00A0\\____/\n".yellow +
+        "|__|\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\\/\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\\/\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\\/\u00A0\u00A0\\/\n".yellow
     );                                     
 }
