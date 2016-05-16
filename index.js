@@ -14,7 +14,7 @@ var Patata = new Liftoff({
   configName: 'patatafile'
 });
 
-Patata.launch({}, function(result) {
+Patata.launch({}, result => {
     printLogo();
     
     var argv = require('yargs').argv;
@@ -28,28 +28,26 @@ Patata.launch({}, function(result) {
     // Require patatafile
     require(result.configPath);
     var patata = require(result.modulePath);
-       
+
     // Fix default values
-    fixDefaultValues(patata, suiteCli).then(function(patata) {
+    fixDefaultValues(patata, suiteCli).then(patata => {
         // Current suite
         var currentSuite = patata.getSuite(suiteCli);
-        
+
         // Start appium
-        startAppium(currentSuite).then(() => {
+        startAppium(currentSuite).then(startAppiumResult => {
             // Init suite
             patata.init(suiteCli);
-            
+
             // Create cucumber args
             var cucumberArgs = createCucumberArgs(patata);
-        
+
             // Init cucumber with args
             startCucumber(cucumberArgs);
-        }).catch(function(error) {
-            throw new Error(error);
-        });
-    }).catch(function(error) {
-        throw new Error(error);
-    });
+
+        }).catch(basicErrorHandler);
+
+    }).catch(basicErrorHandler);
 });
 
 //
@@ -59,7 +57,7 @@ Patata.launch({}, function(result) {
 function fixDefaultValues(patata, suiteCli) {
     var deferred = Q.defer();
     
-    getPort().then(function(port) {    
+    getPort().then(port => {
         // Current suite
         var currentSuite = patata.getSuite(suiteCli);
          
@@ -93,16 +91,20 @@ function fixDefaultValues(patata, suiteCli) {
 // 
 function startAppium(currentSuite) {
     // User first server (TODO: be able to use more servers)
-    var server = currentSuite.servers[0];
+    const deferred = Q.defer();
+    const server = currentSuite.servers[0];
     
     // Create appium arguments
-    var cmd = 'appium -p ' + server.port + ' -a ' + server.host;
+    const cmd = `appium -p ${ server.port } -a ${ server.host }`;
     
     // Exec appium
     appiumApp = require('child_process').exec(cmd);
     
-    var deferred = Q.defer();
-    setTimeout(deferred.resolve, 3000);
+    setTimeout(() => {
+        if (appiumApp) deferred.resolve(appiumApp);
+        else deferred.reject(new Error(`Couldn't start appium!`));
+    }, 2000);
+
     return deferred.promise;
 }
 
@@ -151,7 +153,7 @@ function startCucumber(args) {
     // Init cucumber
     var Cucumber = require(process.cwd() + '/node_modules/cucumber/lib/cucumber');
     var cucumberCli = Cucumber.Cli(args);
-    var cucumberCliAction = function (succeeded) {
+    var cucumberCliAction = succeeded => {
         var code = succeeded ? 0 : 1;
 
         function exitNow() {
@@ -188,6 +190,10 @@ function buildWithArgs(prefix, anyArray, argName) {
     }
     
     return result;
+}
+
+function basicErrorHandler(error) {
+    throw error;
 }
 
 function printMessage(patata) {
