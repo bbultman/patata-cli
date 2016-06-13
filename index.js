@@ -176,6 +176,7 @@ function startCucumber(args) {
     });
 }
 
+// We may not want to actually use the cli-args if arguments aren't passed...
 function useCommandLineArgs(cliArgs) {
 	return (cliArgs.capability && cliArgs.components && cliArgs.features && cliArgs.provider)
 }
